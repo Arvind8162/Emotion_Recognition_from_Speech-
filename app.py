@@ -12,12 +12,6 @@ import tempfile
 import pandas as pd
 import soundfile as sf
 
-import os
-import requests
-from tqdm import tqdm
-
-# sys.path.append is not needed in a proper deployment environment
-
 st.set_page_config(page_title="Speech Emotion AI", layout="wide", initial_sidebar_state="collapsed")
 
 # ─── Premium UI/UX Custom CSS ────────────────────────────────────────────────
@@ -257,32 +251,38 @@ st.markdown('<div class="hero-sub">Upload audio or speak live to detect 7 distin
 # ─── Load Models ─────────────────────────────────────────────────────────────
 @st.cache_resource
 def load_models():
-    # Relative path for deployment
-    model_dir = 'models'
-    model_path = os.path.join(model_dir, 'wav2vec_small.pt')
-    
-    # Create directory if it doesn't exist
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir)
+    # Check for local path first to save download time/bandwidth
+    local_dev_path = r'C:\Users\arvin\Models\wav2vec2\wav2vec_small.pt'
+    if os.path.exists(local_dev_path):
+        model_path = local_dev_path
+    else:
+        model_dir = 'models'
+        model_path = os.path.join(model_dir, 'wav2vec_small.pt')
         
-    # Download model if missing (required for hosting since the file is >900MB and not in Git)
-    if not os.path.exists(model_path):
-        with st.status("📥 Downloading Wav2Vec2 Base Model (900MB)... This may take a few minutes.", expanded=True) as status:
-            url = "https://dl.fbaipublicfiles.com/fairseq/wav2vec/wav2vec_small.pt"
-            response = requests.get(url, stream=True)
-            total_size = int(response.headers.get('content-length', 0))
+        # Create directory if it doesn't exist
+        if not os.path.exists(model_dir):
+            os.makedirs(model_dir)
             
-            with open(model_path, 'wb') as f:
-                for data in response.iter_content(chunk_size=1024*1024):
-                    f.write(data)
-            status.update(label="✅ Download Complete!", state="complete")
+        # Download model if missing (required for hosting since the file is >900MB and not in Git)
+        if not os.path.exists(model_path):
+            import requests
+            with st.status("📥 Downloading Wav2Vec2 Base Model (900MB)... This may take a few minutes.", expanded=True) as status:
+                url = "https://dl.fbaipublicfiles.com/fairseq/wav2vec/wav2vec_small.pt"
+                response = requests.get(url, stream=True)
+                with open(model_path, 'wb') as f:
+                    for data in response.iter_content(chunk_size=1024*1024):
+                        f.write(data)
+                status.update(label="✅ Download Complete!", state="complete")
 
     w2v_model, cfg, task = fairseq.checkpoint_utils.load_model_ensemble_and_task([model_path])
     w2v_model = w2v_model[0]
     w2v_model.eval()
     
-    clf_model = joblib.load(os.path.join('experiments', 'run', 'MainTask', 'DownstreamRavdess', 'RavdessModel', 'out'))
-    stats = joblib.load(os.path.join('experiments', 'run', 'MainTask', 'DownstreamRavdess', 'RavdessStatisticsTrain', 'out'))
+    clf_path = os.path.join('experiments', 'run', 'MainTask', 'DownstreamRavdess', 'RavdessModel', 'out')
+    stats_path = os.path.join('experiments', 'run', 'MainTask', 'DownstreamRavdess', 'RavdessStatisticsTrain', 'out')
+    
+    clf_model = joblib.load(clf_path)
+    stats = joblib.load(stats_path)
     
     return w2v_model, clf_model, stats
 
