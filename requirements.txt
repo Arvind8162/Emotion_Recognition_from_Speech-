@@ -1,3 +1,6 @@
+streamlit-mic-recorder
+pandas
+requests
 pymediainfo
 opensmile==2.0.0
 seaborn
