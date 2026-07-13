@@ -1,13 +1,4 @@
-# Bootstrap dependencies that have incompatible PyPI metadata (dienen/paips require tensorflow==2.4.1)
-import subprocess
-import sys
 import os
-
-try:
-    import dienen
-    import paips
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "dienen==0.0.3", "paips==0.0.5", "--no-deps"])
 
 import streamlit as st
 import joblib
