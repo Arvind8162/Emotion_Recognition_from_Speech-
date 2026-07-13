@@ -5,7 +5,6 @@ import joblib
 import numpy as np
 import librosa
 import torch
-import fairseq
 import time
 import io
 import tempfile
@@ -251,6 +250,8 @@ st.markdown('<div class="hero-sub">Upload audio or speak live to detect 7 distin
 # ─── Load Models ─────────────────────────────────────────────────────────────
 @st.cache_resource
 def load_models():
+    import fairseq
+
     # Check for local path first to save download time/bandwidth
     local_dev_path = r'C:\Users\arvin\Models\wav2vec2\wav2vec_small.pt'
     if os.path.exists(local_dev_path):
@@ -290,8 +291,11 @@ with st.spinner("⏳ Loading AI Models..."):
     try:
         w2v_model, clf_model, stats = load_models()
     except Exception as e:
-        st.error(f"❌ Error loading models: {e}")
-        st.stop()
+            w2v_model = None
+            clf_model = None
+            stats = None
+            st.warning("⚠️ The app is running, but the speech model could not be loaded on this deployment.")
+            st.caption(str(e))
 
 # ─── Config ──────────────────────────────────────────────────────────────────
 emotion_labels = ['angry', 'disgust', 'fearful', 'happy', 'neutral', 'sad', 'surprised']
@@ -300,6 +304,9 @@ emotion_emojis = {'angry':'😡','disgust':'🤢','fearful':'😨','happy':'😊
 # ─── Core Prediction Function ───────────────────────────────────────────────
 def predict_emotion_from_numpy(audio_np, sr):
     """Takes a numpy audio array and sample rate, returns (probabilities, emotion_name)."""
+
+    if w2v_model is None or clf_model is None or stats is None:
+        return None, None
     
     if len(audio_np) == 0:
         return None, None
@@ -397,6 +404,10 @@ def display_results(pred_probs, predicted_emotion):
 
 def run_prediction(audio_bytes):
     """Full pipeline: bytes -> load -> predict -> display."""
+    if w2v_model is None or clf_model is None or stats is None:
+        st.warning("⚠️ Model backend is not available in this deployment yet.")
+        return
+
     audio_np, sr = load_audio_from_bytes(audio_bytes)
     
     if audio_np is None or len(audio_np) == 0:
