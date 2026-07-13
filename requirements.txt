@@ -10,8 +10,8 @@ torchaudio
 ruamel.yaml
 librosa
 numba
-hydra-core
-omegaconf
+hydra-core==1.3.2
+omegaconf==2.3.0
 soundfile
 joblib
 scikit-learn
